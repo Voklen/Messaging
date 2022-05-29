@@ -32,36 +32,25 @@ class MyHomePage extends StatefulWidget {
 }
 
 class RECEIVE extends State<MyHomePage> {
-  int _counter = 0;
   late Socket _socket;
   String _message = "";
 
-  void _getMessage() async {
-    _message = await _sendingData();
-    setState(() {
-      _counter++;
-    });
-  }
-
   // SERVER SEND
-  Future<String> _sendingData() async {
+  Future<String> _serverSend() async {
     ServerSocket.bind(InternetAddress.anyIPv6, 4567)
         .then((ServerSocket server) {
       server.listen(handleClient);
     });
-    return "yep";
+    return "Server running";
   }
 
   void handleClient(Socket client) {
-    print('Connection from '
-        '${client.remoteAddress.address}:${client.remotePort}');
-
     client.write("Hello from simple server!\n");
     client.close();
   }
 
   // CLIENT RECEIVE
-  void _getData() async {
+  void _clientReceive() async {
     _socket = await Socket.connect("localhost", 4567);
     start(_socket);
   }
@@ -111,18 +100,15 @@ class RECEIVE extends State<MyHomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             ElevatedButton(
-                onPressed: _getData, child: const Text('Send message')),
+                onPressed: _clientReceive,
+                child: const Text('Receive message (Client)')),
             ElevatedButton(
-                onPressed: _getMessage, child: const Text('Receive message')),
+                onPressed: _serverSend,
+                child: const Text('Send message (Server)')),
             const Text('The message is:'),
             Text(_message)
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _getMessage,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
