@@ -32,8 +32,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class RECEIVE extends State<MyHomePage> {
-  late Socket _socket;
-  String _message = "";
+  final List<Connection> _connections = [];
 
   // SERVER SEND
   Future<String> _serverSend() async {
@@ -51,46 +50,27 @@ class RECEIVE extends State<MyHomePage> {
 
   // CLIENT RECEIVE
   void _clientReceive() async {
-    _socket = await Socket.connect("localhost", 4567);
-    start(_socket);
+    var socket = await Socket.connect("localhost", 4567);
+    var connection = Connection(socket, removeConnection);
+    _connections.add(connection);
   }
 
-  void start(Socket s) {
-    var _socket = s;
-    var _address = _socket.remoteAddress.address;
-    var _port = _socket.remotePort;
+  // void showMessage(String message) {
+  //   setState(() {
+  //     _messages.add(message);
+  //   });
+  // }
 
-    _socket.listen(messageHandler,
-        onError: errorHandler, onDone: finishedHandler);
-  }
-
-  void messageHandler(Uint8List data) {
-    String message = String.fromCharCodes(data).trim();
-    setState(() {
-      _message = 'Message: $message';
-    });
-  }
-
-  void errorHandler(error) {
-    setState(() {
-      _message = 'Message: $error';
-    });
-    _socket.close();
-  }
-
-  void finishedHandler() {
-    // setState(() {
-    //   _message = 'Disconnected';
-    // });
-    _socket.close();
-  }
-
-  void write(String message) {
-    _socket.write(message);
+  void removeConnection(Connection con) {
+    _connections.remove(con);
   }
 
   @override
   Widget build(BuildContext context) {
+    List<String> messages = [];
+    for (var i in _connections) {
+      messages.addAll(i.messages);
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -106,10 +86,41 @@ class RECEIVE extends State<MyHomePage> {
                 onPressed: _serverSend,
                 child: const Text('Send message (Server)')),
             const Text('The message is:'),
-            Text(_message)
+            Text(messages.toString())
           ],
         ),
       ),
     );
+  }
+}
+
+class Connection {
+  final Socket _socket;
+  final Function _remove;
+
+  List<String> messages = [];
+
+  Connection(this._socket, this._remove) {
+    _socket.listen(messageHandler,
+        onError: errorHandler, onDone: finishedHandler);
+  }
+
+  void messageHandler(Uint8List data) {
+    String message = String.fromCharCodes(data).trim();
+    messages.add(message);
+  }
+
+  void errorHandler(error) {
+    _remove(this);
+    _socket.close();
+  }
+
+  void finishedHandler() {
+    // _remove(this);
+    // _socket.close();
+  }
+
+  void write(String message) {
+    _socket.write(message);
   }
 }
