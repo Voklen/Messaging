@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -18,20 +17,20 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const Chat(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
+class Chat extends StatefulWidget {
+  const Chat({Key? key, required this.title}) : super(key: key);
   final String title;
 
   @override
-  State<MyHomePage> createState() => RECEIVE();
+  State<Chat> createState() => _ChatState();
 }
 
-class RECEIVE extends State<MyHomePage> {
+class _ChatState extends State<Chat> {
   final List<ActiveConnection> _connections = [];
   final List<String> _messages = [];
 
@@ -112,18 +111,21 @@ class ActiveConnection {
   }
 
   void _messageHandler(Uint8List data) {
+    // This is where the message decoding will be
+    // `message` will also be changed from a String to a `Message` class
+    // To account for things like time sent and formatting
     String message = String.fromCharCodes(data).trim();
     _onMessage(message);
   }
 
   void _errorHandler(error) {
-    _remove(this);
     _socket.close();
+    _remove(this);
   }
 
   void _finishedHandler() {
-    // _remove(this);
-    // _socket.close();
+    _socket.close();
+    _remove(this);
   }
 
   void sendMessage(String message) {
@@ -138,26 +140,23 @@ class StandbyConnection {
   List<String> messages = [];
 
   StandbyConnection(this._socket, this._remove) {
-    _socket.listen(messageHandler,
-        onError: errorHandler, onDone: finishedHandler);
+    _socket.listen(_messageHandler,
+        onError: _errorHandler, onDone: _finishedHandler);
   }
 
-  void messageHandler(Uint8List data) {
+  void _messageHandler(Uint8List data) {
+    // This should send a notification and write the message to disk
     String message = String.fromCharCodes(data).trim();
     messages.add(message);
   }
 
-  void errorHandler(error) {
-    _remove(this);
+  void _errorHandler(error) {
     _socket.close();
+    _remove(this);
   }
 
-  void finishedHandler() {
-    // _remove(this);
+  void _finishedHandler() {
     // _socket.close();
-  }
-
-  void write(String message) {
-    _socket.write(message);
+    // _remove(this);
   }
 }
