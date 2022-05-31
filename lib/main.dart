@@ -32,7 +32,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class RECEIVE extends State<MyHomePage> {
-  final List<Connection> _connections = [];
+  final List<ActiveConnection> _connections = [];
+  final List<String> _messages = [];
 
   // SERVER SEND
   Future<String> _serverSend() async {
@@ -45,32 +46,33 @@ class RECEIVE extends State<MyHomePage> {
 
   void handleClient(Socket client) {
     client.write("Hello from simple server!\n");
-    client.close();
+    var connection = ActiveConnection(client, showMessage, removeConnection);
+    _connections.add(connection);
   }
 
   // CLIENT RECEIVE
   void _clientReceive() async {
     var socket = await Socket.connect("localhost", 4567);
-    var connection = Connection(socket, removeConnection);
+    var connection = ActiveConnection(socket, showMessage, removeConnection);
     _connections.add(connection);
   }
 
-  // void showMessage(String message) {
-  //   setState(() {
-  //     _messages.add(message);
-  //   });
-  // }
+  void showMessage(String message) {
+    setState(() {
+      _messages.add(message);
+    });
+  }
 
-  void removeConnection(Connection con) {
+  void _sendMessage() {
+    _connections[0].sendMessage("heloooo");
+  }
+
+  void removeConnection(ActiveConnection con) {
     _connections.remove(con);
   }
 
   @override
   Widget build(BuildContext context) {
-    List<String> messages = [];
-    for (var i in _connections) {
-      messages.addAll(i.messages);
-    }
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -81,12 +83,17 @@ class RECEIVE extends State<MyHomePage> {
           children: <Widget>[
             ElevatedButton(
                 onPressed: _clientReceive,
-                child: const Text('Receive message (Client)')),
+                child: const Text(
+                    'Establish connection and receive message (Client)')),
+            ElevatedButton(
+                onPressed: _sendMessage,
+                child: const Text('Send message (both)')),
             ElevatedButton(
                 onPressed: _serverSend,
-                child: const Text('Send message (Server)')),
+                child: const Text(
+                    'Establish connection and send message (Server)')),
             const Text('The message is:'),
-            Text(messages.toString())
+            Text(_messages.toString())
           ],
         ),
       ),
@@ -94,13 +101,43 @@ class RECEIVE extends State<MyHomePage> {
   }
 }
 
-class Connection {
+class ActiveConnection {
+  final Socket _socket;
+  final Function _onMessage;
+  final Function _remove;
+
+  ActiveConnection(this._socket, this._onMessage, this._remove) {
+    _socket.listen(_messageHandler,
+        onError: _errorHandler, onDone: _finishedHandler);
+  }
+
+  void _messageHandler(Uint8List data) {
+    String message = String.fromCharCodes(data).trim();
+    _onMessage(message);
+  }
+
+  void _errorHandler(error) {
+    _remove(this);
+    _socket.close();
+  }
+
+  void _finishedHandler() {
+    // _remove(this);
+    // _socket.close();
+  }
+
+  void sendMessage(String message) {
+    _socket.write(message);
+  }
+}
+
+class StandbyConnection {
   final Socket _socket;
   final Function _remove;
 
   List<String> messages = [];
 
-  Connection(this._socket, this._remove) {
+  StandbyConnection(this._socket, this._remove) {
     _socket.listen(messageHandler,
         onError: errorHandler, onDone: finishedHandler);
   }
