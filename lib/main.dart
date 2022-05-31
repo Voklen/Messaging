@@ -34,6 +34,8 @@ class _ChatState extends State<Chat> {
   final List<ActiveConnection> _connections = [];
   final List<String> _messages = [];
 
+  final _textController = TextEditingController();
+
   // SERVER SEND
   Future<String> _serverSend() async {
     ServerSocket.bind(InternetAddress.anyIPv6, 4567)
@@ -63,7 +65,8 @@ class _ChatState extends State<Chat> {
   }
 
   void _sendMessage() {
-    _connections[0].sendMessage("heloooo");
+    String message = _textController.text;
+    _connections[0].sendMessage(message);
   }
 
   void removeConnection(ActiveConnection con) {
@@ -76,7 +79,8 @@ class _ChatState extends State<Chat> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
@@ -85,12 +89,23 @@ class _ChatState extends State<Chat> {
                 child: const Text(
                     'Establish connection and receive message (Client)')),
             ElevatedButton(
-                onPressed: _sendMessage,
-                child: const Text('Send message (both)')),
-            ElevatedButton(
                 onPressed: _serverSend,
                 child: const Text(
                     'Establish connection and send message (Server)')),
+            TextField(
+              controller: _textController,
+              decoration: InputDecoration(
+                  hintText: 'Enter message',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                      onPressed: () {
+                        _sendMessage();
+                      },
+                      icon: const Icon(Icons.send))),
+            ),
+            ElevatedButton(
+                onPressed: _sendMessage,
+                child: const Text('Send message (both)')),
             const Text('The message is:'),
             Text(_messages.toString())
           ],
