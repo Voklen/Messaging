@@ -46,7 +46,7 @@ class _ChatState extends State<Chat> {
   }
 
   void handleClient(Socket client) {
-    client.write("Hello from simple server!\n");
+    client.write("Hello from alex's computer!\n");
     var connection = ActiveConnection(client, showMessage, removeConnection);
     _connections.add(connection);
   }
@@ -64,8 +64,10 @@ class _ChatState extends State<Chat> {
     });
   }
 
-  void _sendMessage() {
-    String message = _textController.text;
+  void _sendMessage(String message) {
+    setState(() {
+      _messages.add(message);
+    });
     _connections[0].sendMessage(message);
   }
 
@@ -75,6 +77,7 @@ class _ChatState extends State<Chat> {
 
   @override
   Widget build(BuildContext context) {
+    var textFocus = FocusNode();
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -93,20 +96,25 @@ class _ChatState extends State<Chat> {
                 child: const Text(
                     'Establish connection and send message (Server)')),
             TextField(
+              onSubmitted: (value) {
+                _sendMessage(value);
+                _textController.clear();
+                textFocus.requestFocus();
+              },
+              focusNode: textFocus,
               controller: _textController,
               decoration: InputDecoration(
                   hintText: 'Enter message',
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                       onPressed: () {
-                        _sendMessage();
+                        _sendMessage(_textController.text);
+                        _textController.clear();
+                        textFocus.requestFocus();
                       },
                       icon: const Icon(Icons.send))),
             ),
-            ElevatedButton(
-                onPressed: _sendMessage,
-                child: const Text('Send message (both)')),
-            const Text('The message is:'),
+            const Text('The messages are:'),
             Text(_messages.toString())
           ],
         ),
